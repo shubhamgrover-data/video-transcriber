@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClipScribe — YouTube, Facebook, Instagram & Local Video Transcriber</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">CS</div>
+        <div>
+          <h1>ClipScribe</h1>
+          <p class="subtitle">Timestamped Transcription for YouTube, Facebook, Instagram &amp; Local Files</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="engineStatusPill" class="pill pill-muted">Checking engines...</span>
+        <a href="/docs" target="_blank" rel="noopener" class="btn btn-ghost">API Docs</a>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="primary-column">
+        <div class="card composer-card">
+          <div class="mode-tabs" role="tablist">
+            <button type="button" class="mode-tab active" data-mode="url" role="tab" aria-selected="true">
+              Video Link (YT / FB / IG)
+            </button>
+            <button type="button" class="mode-tab" data-mode="file" role="tab" aria-selected="false">
+              Upload Local File (MP4 / MP3 / WAV)
+            </button>
+          </div>
+
+          <form id="transcribeForm" novalidate>
+            <div id="urlModeSection">
+              <div class="field-header">
+                <label for="videoUrl">Video URL</label>
+                <span id="detectedPlatformBadge" class="platform-badge hidden"></span>
+              </div>
+
+              <div class="url-row">
+                <input
+                  id="videoUrl"
+                  name="url"
+                  type="url"
+                  placeholder="Paste a YouTube, Facebook, or Instagram video link..."
+                  autocomplete="off"
+                />
+                <button type="submit" id="submitBtn" class="btn btn-primary">
+                  Transcribe
+                </button>
+              </div>
+            </div>
+
+            <div id="fileModeSection" class="hidden">
+              <div class="field-header">
+                <label for="mediaFile">Local Video or Audio File</label>
+                <span class="platform-badge platform-local">LOCAL</span>
+              </div>
+              <div class="url-row">
+                <input
+                  id="mediaFile"
+                  name="file"
+                  type="file"
+                  accept=".mp4,.mov,.mkv,.webm,.avi,.mp3,.wav,.m4a,.ogg,.flac"
+                />
+                <button type="submit" id="uploadSubmitBtn" class="btn btn-primary">
+                  Upload &amp; Transcribe
+                </button>
+              </div>
+            </div>
+
+            <div class="options-grid">
+              <div class="option-field">
+                <label for="engineSelect">Transcription Backend</label>
+                <select id="engineSelect" name="engine">
+                  <option value="auto" selected>Auto (Best Available)</option>
+                  <option value="faster_whisper">Whisper Container (faster-whisper)</option>
+                  <option value="groq">Groq API (Whisper Large v3 Turbo)</option>
+                  <option value="openai">OpenAI Whisper API</option>
+                  <option value="demo">Demo Mode (Sample Preview)</option>
+                </select>
+              </div>
+
+              <div class="option-field" id="whisperModelField">
+                <label for="whisperModelSelect">Whisper Container Model</label>
+                <select id="whisperModelSelect" name="whisper_model">
+                  <option value="base" selected>base (Default — Fast CPU)</option>
+                  <option value="small">small (Balanced)</option>
+                  <option value="medium">medium (High Accuracy)</option>
+                  <option value="large-v3">large-v3 (Best Accuracy)</option>
+                  <option value="tiny">tiny (Ultra-light)</option>
+                </select>
+              </div>
+
+              <div class="option-field">
+                <label for="languageSelect">Language</label>
+                <select id="languageSelect" name="language">
+                  <option value="">Auto-detect</option>
+                  <option value="en">English (en)</option>
+                  <option value="hi">Hindi (hi)</option>
+                  <option value="es">Spanish (es)</option>
+                  <option value="fr">French (fr)</option>
+                  <option value="de">German (de)</option>
+                  <option value="ar">Arabic (ar)</option>
+                  <option value="pt">Portuguese (pt)</option>
+                  <option value="ja">Japanese (ja)</option>
+                </select>
+              </div>
+
+              <label class="checkbox-field" for="preferCaptions" id="captionsToggleRow">
+                <input id="preferCaptions" type="checkbox" checked />
+                <span>Use YouTube captions fast-path when available</span>
+              </label>
+            </div>
+
+            <div id="quickSamplesRow" class="quick-samples">
+              <span class="muted">Try demo link:</span>
+              <button type="button" class="link-chip" data-sample="https://www.youtube.com/watch?v=dQw4w9WgXcQ">YouTube</button>
+              <button type="button" class="link-chip" data-sample="https://www.facebook.com/watch/?v=10153231379946729">Facebook</button>
+              <button type="button" class="link-chip" data-sample="https://www.instagram.com/reel/C8example123/">Instagram</button>
+            </div>
+
+            <div id="formError" class="alert alert-error hidden" role="alert"></div>
+          </form>
+        </div>
+
+        <div id="activeJobCard" class="card job-card hidden">
+          <div class="job-header">
+            <div>
+              <div class="job-meta-row">
+                <span id="jobPlatformBadge" class="platform-badge"></span>
+                <span id="jobStatusBadge" class="status-badge"></span>
+                <span id="jobEngineBadge" class="pill pill-muted hidden"></span>
+                <span id="jobLangBadge" class="pill pill-muted hidden"></span>
+              </div>
+              <h2 id="jobTitle">Processing video...</h2>
+              <p id="jobSubmeta" class="muted small"></p>
+            </div>
+            <a id="openSourceLink" href="#" target="_blank" rel="noopener" class="btn btn-ghost small-btn">Open Video</a>
+          </div>
+
+          <div id="progressWrap" class="progress-wrap">
+            <div class="progress-track">
+              <div id="progressBar" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <p id="stageMessage" class="muted small">Queued...</p>
+          </div>
+
+          <div id="jobErrorBox" class="alert alert-error hidden"></div>
+
+          <div id="transcriptPanel" class="transcript-panel hidden">
+            <div class="toolbar">
+              <input
+                id="searchInput"
+                type="search"
+                class="search-input"
+                placeholder="Search inside transcript..."
+              />
+              <div class="toolbar-actions">
+                <button type="button" id="copyTimestampedBtn" class="btn btn-secondary small-btn">Copy w/ Timestamps</button>
+                <button type="button" id="copyPlainBtn" class="btn btn-ghost small-btn">Copy Plain</button>
+              </div>
+            </div>
+
+            <div class="export-bar">
+              <span class="muted small">Download:</span>
+              <a id="dlSrt" class="export-chip" href="#">SRT</a>
+              <a id="dlVtt" class="export-chip" href="#">WebVTT</a>
+              <a id="dlTxt" class="export-chip" href="#">TXT (Timestamps)</a>
+              <a id="dlJson" class="export-chip" href="#">JSON</a>
+              <span id="segmentCount" class="muted small ml-auto"></span>
+            </div>
+
+            <div id="segmentsList" class="segments-list" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidebar-column">
+        <div class="card history-card">
+          <div class="history-header">
+            <h3>Recent Jobs</h3>
+            <button type="button" id="refreshHistoryBtn" class="btn btn-ghost small-btn">Refresh</button>
+          </div>
+          <div id="historyList" class="history-list">
+            <p class="muted small">No transcriptions yet. Paste a link or upload a file to get started.</p>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

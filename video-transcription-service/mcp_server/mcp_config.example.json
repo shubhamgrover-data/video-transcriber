@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "clipscribe": {
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "/ABSOLUTE/PATH/TO/video-transcription-service/docker-compose.yml",
+        "exec",
+        "-T",
+        "api",
+        "python",
+        "-m",
+        "mcp_server.server"
+      ]
+    }
+  }
+}
