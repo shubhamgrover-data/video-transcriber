@@ -409,6 +409,14 @@ mark { background: rgba(245, 158, 11, 0.35); color: #fef3c7; border-radius: 3px;
   white-space: nowrap;
 }
 
+.history-item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.retry-icon-btn,
 .delete-btn {
   background: transparent;
   border: none;
@@ -418,7 +426,39 @@ mark { background: rgba(245, 158, 11, 0.35); color: #fef3c7; border-radius: 3px;
   padding: 2px 6px;
 }
 
+.retry-icon-btn:hover { color: #93c5fd; }
 .delete-btn:hover { color: var(--danger); }
+
+.retry-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.retry-info {
+  flex: 1 1 200px;
+}
+
+.retry-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.retry-select {
+  width: auto;
+  min-width: 170px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+}
 
 .alert { padding: 12px 14px; border-radius: 10px; margin-top: 12px; font-size: 0.88rem; }
 .alert-error {

@@ -1,0 +1,6 @@
+{
+  "name": "ClipScribe — Video Transcription Service",
+  "description": "Timestamped transcription service for YouTube, Facebook, Instagram, and local video/audio files with SRT, WebVTT, TXT, and JSON exports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

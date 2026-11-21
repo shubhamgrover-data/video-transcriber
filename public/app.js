@@ -38,6 +38,10 @@ const els = {
   progressBar: document.getElementById("progressBar"),
   stageMessage: document.getElementById("stageMessage"),
   jobErrorBox: document.getElementById("jobErrorBox"),
+  retryPanel: document.getElementById("retryPanel"),
+  retryStepInfo: document.getElementById("retryStepInfo"),
+  retryEngineSelect: document.getElementById("retryEngineSelect"),
+  retryJobBtn: document.getElementById("retryJobBtn"),
 
   transcriptPanel: document.getElementById("transcriptPanel"),
   searchInput: document.getElementById("searchInput"),
@@ -172,20 +176,40 @@ function renderHistory(jobs) {
   for (const job of jobs) {
     const item = document.createElement("div");
     item.className = `history-item${job.id === state.activeJobId ? " active" : ""}`;
+    const retryBtnHtml =
+      job.status === "failed" && job.can_retry
+        ? `<button type="button" class="retry-icon-btn" title="Retry from ${job.cached_audio_ready ? "transcribing (cached audio)" : job.failed_step || "failed"} step" data-retry="${job.id}">&#x21bb;</button>`
+        : "";
+    const metaSub =
+      job.status === "failed" && job.failed_step
+        ? `Failed at ${job.failed_step}${job.cached_audio_ready ? " • audio cached" : ""}${job.retry_count ? ` • ${job.retry_count}x retried` : ""}`
+        : `${job.segments.length} segments${job.duration_sec ? ` • ${formatClock(job.duration_sec)}` : ""}`;
+
     item.innerHTML = `
       <div class="history-item-top">
         <span class="platform-badge platform-${job.platform}">${job.platform}</span>
         <span class="status-badge status-${job.status}">${job.status}</span>
-        <button type="button" class="delete-btn" title="Delete job" data-delete="${job.id}">&times;</button>
+        <span class="history-item-actions">
+          ${retryBtnHtml}
+          <button type="button" class="delete-btn" title="Delete job" data-delete="${job.id}">&times;</button>
+        </span>
       </div>
       <p class="history-item-title">${escapeHtml(job.title || job.canonical_url)}</p>
-      <p class="muted small" style="margin:0">${job.segments.length} segments${job.duration_sec ? ` • ${formatClock(job.duration_sec)}` : ""}</p>
+      <p class="muted small" style="margin:0">${escapeHtml(metaSub)}</p>
     `;
 
     item.addEventListener("click", (e) => {
-      if (e.target.dataset.delete) return;
+      if (e.target.dataset.delete || e.target.dataset.retry) return;
       selectJob(job.id);
     });
+
+    const retryBtn = item.querySelector("[data-retry]");
+    if (retryBtn) {
+      retryBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        await retryJob(job.id);
+      });
+    }
 
     const delBtn = item.querySelector("[data-delete]");
     delBtn.addEventListener("click", async (e) => {
@@ -201,6 +225,38 @@ function renderHistory(jobs) {
     });
 
     els.historyList.appendChild(item);
+  }
+}
+
+async function retryJob(jobId, overrideEngine = "") {
+  try {
+    els.retryJobBtn.disabled = true;
+    els.retryJobBtn.textContent = "Resuming...";
+    const body = {};
+    if (overrideEngine) {
+      body.engine = overrideEngine;
+    }
+    const res = await fetch(`/api/jobs/${jobId}/retry`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || "Failed to retry job.");
+    }
+    els.retryEngineSelect.value = "";
+    showToast(
+      data.cached_audio_ready
+        ? "Resuming from transcribing step (cached audio)"
+        : "Retrying from extracting step",
+    );
+    await selectJob(jobId);
+  } catch (err) {
+    showToast(err.message || "Retry failed");
+  } finally {
+    els.retryJobBtn.disabled = false;
+    els.retryJobBtn.textContent = "Retry Failed Step";
   }
 }
 
@@ -272,10 +328,25 @@ function renderActiveJob(job) {
     els.jobErrorBox.textContent = job.error || "Unknown error occurred.";
     els.jobErrorBox.classList.remove("hidden");
     els.transcriptPanel.classList.add("hidden");
+    if (job.can_retry) {
+      const stepLabel = job.failed_step || "transcribing";
+      const cacheNote = job.cached_audio_ready
+        ? "Audio cached — retry skips download & ffmpeg"
+        : "Retry will resume from extraction";
+      const attemptsNote = job.retry_count > 0 ? ` • Retried ${job.retry_count}x` : "";
+      els.retryStepInfo.textContent = `Failed at step: ${stepLabel} • ${cacheNote}${attemptsNote}`;
+      els.retryJobBtn.textContent = job.cached_audio_ready
+        ? "Retry Transcribing Only"
+        : "Retry Extracting";
+      els.retryPanel.classList.remove("hidden");
+    } else {
+      els.retryPanel.classList.add("hidden");
+    }
     return;
   }
 
   els.jobErrorBox.classList.add("hidden");
+  els.retryPanel.classList.add("hidden");
 
   if (job.status === "completed") {
     els.transcriptPanel.classList.remove("hidden");
@@ -412,6 +483,11 @@ els.copyPlainBtn.addEventListener("click", async () => {
   if (!state.activeJob) return;
   await navigator.clipboard.writeText(state.activeJob.full_text || "");
   showToast("Copied plain transcript");
+});
+
+els.retryJobBtn.addEventListener("click", () => {
+  if (!state.activeJobId) return;
+  retryJob(state.activeJobId, els.retryEngineSelect.value);
 });
 
 els.refreshHistoryBtn.addEventListener("click", loadHistory);

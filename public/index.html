@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ClipScribe — YouTube, Facebook, Instagram & Local Video Transcriber</title>
+  <title>ClipScribe — Video Transcription Service</title>
+  <meta name="description" content="Timestamped transcription service for YouTube, Facebook, Instagram, and local video/audio files with SRT, WebVTT, TXT, and JSON exports." />
+  <meta property="og:title" content="ClipScribe — Video Transcription Service" />
+  <meta property="og:description" content="Timestamped transcription service for YouTube, Facebook, Instagram, and local video/audio files with SRT, WebVTT, TXT, and JSON exports." />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
@@ -78,6 +81,8 @@
                 <label for="engineSelect">Transcription Backend</label>
                 <select id="engineSelect" name="engine">
                   <option value="auto" selected>Auto (Best Available)</option>
+                  <option value="deepgram">Deepgram API (Nova-3)</option>
+                  <option value="gemini">Gemini Audio Transcription (gemini-3.5-transcribe)</option>
                   <option value="faster_whisper">Whisper Container (faster-whisper)</option>
                   <option value="groq">Groq API (Whisper Large v3 Turbo)</option>
                   <option value="openai">OpenAI Whisper API</option>
@@ -151,6 +156,25 @@
           </div>
 
           <div id="jobErrorBox" class="alert alert-error hidden"></div>
+
+          <div id="retryPanel" class="retry-bar hidden">
+            <div class="retry-info">
+              <span id="retryStepInfo" class="muted small"></span>
+            </div>
+            <div class="retry-controls">
+              <select id="retryEngineSelect" aria-label="Retry backend" class="retry-select">
+                <option value="">Same Backend</option>
+                <option value="auto">Auto (Best Available)</option>
+                <option value="deepgram">Deepgram API (Nova-3)</option>
+                <option value="gemini">Gemini (gemini-3.5-transcribe)</option>
+                <option value="groq">Groq API (Whisper Large v3 Turbo)</option>
+                <option value="openai">OpenAI Whisper API</option>
+                <option value="faster_whisper">Whisper Container (faster-whisper)</option>
+                <option value="demo">Demo Mode</option>
+              </select>
+              <button type="button" id="retryJobBtn" class="btn btn-primary small-btn">Retry Failed Step</button>
+            </div>
+          </div>
 
           <div id="transcriptPanel" class="transcript-panel hidden">
             <div class="toolbar">
